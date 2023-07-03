@@ -2,6 +2,7 @@
 (use-package :cl-graph)
 
 (defparameter vertigo-nodes
+  ;; Nodes and node-data describing locations on the map
   '(:T-Spawn
     :S-Corridor
     :Tunnels
@@ -85,6 +86,7 @@
   (mm/add-edges (mm/make-graph-from-nodes vertigo-nodes) vertigo-edges))
 
 (defun mm/make-graph-from-nodes (list)
+  ;; Add all nodes, no edges yet
   (let ((g (cl-graph::make-container 'graph-container)))
     (loop
       for node in list do
@@ -92,6 +94,7 @@
     g))
 
 (defun mm/add-edges (graph edge-list)
+  ;; Add edges between nodes
   (loop for (src dst-list) in edge-list do
       (loop for (dst weight) in dst-list do
         (add-edge-between-vertexes
@@ -99,5 +102,4 @@
          :edge-type :directed
          :value weight)))
   graph)
-
 

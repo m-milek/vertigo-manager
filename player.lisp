@@ -17,9 +17,3 @@
           (name player) (hp player) (gun player) (utility player))
   (terpri))
 
-
-
-
-
-
-
