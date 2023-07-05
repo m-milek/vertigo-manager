@@ -27,8 +27,24 @@
 (defun print-map (g)
   (iterate-vertexes g 'print-node-and-children))
 
+(defun remove-element (element list)
+  (if (null list) 0
+      (if (= element (car list))
+          (delete (car list))
+          (remove-it (cdr list)))))
+
+(defun move-player (player dst-node))
+
+(defun spawn-player (player-name node-name)
+  (push player-name (players (gethash node-name *node-data-map*))))
+
 (defun run ()
-  (print-map (make-map-graph)))
+  (let ((team '(:Mael :JonBarnacle :Kataszynka :leszmak :OSKKIL))
+        (map (make-map-graph)))
+    (mapcar (lambda (player) (spawn-player player :T-Spawn)) team)
+    (print-map map)
+    ;;(print-player-infos)
+    ))
 
 (run)
 

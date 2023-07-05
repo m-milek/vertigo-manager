@@ -17,3 +17,7 @@
           (name player) (hp player) (gun player) (utility player))
   (terpri))
 
+(defmethod location ((player player))
+  ;; Using *node-data-map* see where a player is
+  ()
+  )
