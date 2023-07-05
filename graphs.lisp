@@ -1,10 +1,10 @@
 (load "~/quicklisp/setup.lisp")
 (load "util.lisp")
-(load "player.lisp")
-(load "player-info.lisp")
 (load "vertigo.lisp")
 (load "node-data.lisp")
 (load "guns.lisp")
+(load "player.lisp")
+(load "player-info.lisp")
 
 (defun weight (edge) (cl-graph::value edge))
 
@@ -27,13 +27,22 @@
 (defun print-map (g)
   (iterate-vertexes g 'print-node-and-children))
 
-(defun remove-element (element list)
-  (if (null list) 0
-      (if (= element (car list))
-          (delete (car list))
-          (remove-it (cdr list)))))
+;; (defun remove-element (element list)
+;;   (if (null list) 0
+;;       (if (= element (car list))
+;;           (delete (car list))
+;;           (remove-element (cdr list)))))
 
-(defun move-player (player dst-node))
+(defun move-player (player-name dst-node)
+  ;; 1. Find where the player is (src-node)
+  ;; 2. Add the player to dst-node
+  ;; 3. Remove player from src-node
+  (let ((src-node (player-location player-name)))
+    (spawn-player player-name dst-node)
+    (remove-player player-name src-node)))
+
+(defun remove-player (player-name node-name)
+  (delete player-name (players (gethash node-name *node-data-map*))))
 
 (defun spawn-player (player-name node-name)
   (push player-name (players (gethash node-name *node-data-map*))))
@@ -42,9 +51,12 @@
   (let ((team '(:Mael :JonBarnacle :Kataszynka :leszmak :OSKKIL))
         (map (make-map-graph)))
     (mapcar (lambda (player) (spawn-player player :T-Spawn)) team)
+    (print-player-infos)
     (print-map map)
-    ;;(print-player-infos)
-    ))
+    (terpri)
+    (print (player-location :Mael))
+    (move-player :Mael :Tunnels)
+    (print (player-location :Mael))))
 
 (run)
 

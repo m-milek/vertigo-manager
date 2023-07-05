@@ -20,6 +20,9 @@
 (defun println (s)
   (format t s))
 
+(defun contains (list val)
+  (not (not (member val list :test #'equal))))
+
 (defun pair-list (lst)
   (if (null lst)
       nil

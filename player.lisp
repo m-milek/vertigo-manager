@@ -17,7 +17,14 @@
           (name player) (hp player) (gun player) (utility player))
   (terpri))
 
-(defmethod location ((player player))
-  ;; Using *node-data-map* see where a player is
-  ()
-  )
+(defun key-val-pairs (hash-table)
+  (let (result)
+    (maphash
+     (lambda (key value) (push (list key value) result))
+     hash-table)
+    result))
+
+(defun player-location (player-name)
+  (loop for (node-name node-data) in (key-val-pairs *node-data-map*) do
+    (if (contains (players node-data) player-name)
+        (return node-name))))
