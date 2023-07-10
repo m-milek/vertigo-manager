@@ -33,3 +33,6 @@
   (cond ((null list) nil)
         ((atom list) (list list))
         (t (loop for a in list appending (flatten a)))))
+
+(defun hash-table-keys (hash-table)
+  (loop for key being the hash-keys of hash-table collect key))

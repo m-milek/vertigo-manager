@@ -1,6 +1,3 @@
-(with-silenced-output '(ql:quickload :cl-graph))
-(use-package :cl-graph)
-
 (defparameter vertigo-nodes
   ;; Nodes and node-data describing locations on the map
   '(:T-Spawn
@@ -87,17 +84,17 @@
 
 (defun mm/make-graph-from-nodes (list)
   ;; Add all nodes, no edges yet
-  (let ((g (cl-graph::make-container 'graph-container)))
+  (let ((g (cl-graph::make-container 'cl-graph:graph-container)))
     (loop
       for node in list do
-        (add-vertex g node))
+        (cl-graph:add-vertex g node))
     g))
 
 (defun mm/add-edges (graph edge-list)
   ;; Add edges between nodes
   (loop for (src dst-list) in edge-list do
       (loop for (dst weight) in dst-list do
-        (add-edge-between-vertexes
+        (cl-graph:add-edge-between-vertexes
          graph src dst
          :edge-type :directed
          :value weight)))
