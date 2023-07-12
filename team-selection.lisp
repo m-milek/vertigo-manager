@@ -1,7 +1,7 @@
 (defparameter *possible-teammates*
   (hash-table-keys *players*))
 
-(defparameter *current-pick*
+(defparameter *team*
   '())
 
 (defun render-possible-teammates-frame (&key frame)
@@ -26,9 +26,9 @@
   (put-text frame 0 0 "Select your squad. Type a name and press Enter to pick them.")
   (put-text frame 1 0 "To undo a pick, press LEFT.")
   (put-text frame 2 0 "To finish, press RIGHT")
-  (put-text frame 3 0 (format nil "Current selection (~A/5):~%" (length *current-pick*)))
+  (put-text frame 3 0 (format nil "Current selection (~A/5):~%" (length *team*)))
   (let ((line-num 5))
-    (loop for name in *current-pick* do
+    (loop for name in *team* do
       (put-text frame line-num 0 (string name))
       (setf line-num (+ 1 line-num)))))
 
@@ -51,20 +51,22 @@
 (defun finish-input ()
   (let* ((text (string-upcase (get-text 'input)))
          (keyword-from-input (intern text "KEYWORD")))
-    (when (and (< (length *current-pick*) 5)
+    (when (and (< (length *team*) 5)
                (contains *possible-teammates* keyword-from-input))
-      (push keyword-from-input *current-pick*)
+      (push keyword-from-input *team*)
       (setf *possible-teammates* (remove keyword-from-input *possible-teammates*))))
   (clear-text 'input))
 
 (defun team-selection-undo ()
-  (let ((to-remove (first *current-pick*)))
+  (let ((to-remove (first *team*)))
     (when to-remove
-      (push (first *current-pick*) *possible-teammates*)
-      (setf *current-pick*
-            (remove to-remove *current-pick*)))))
+      (push (first *team*) *possible-teammates*)
+      (setf *team*
+            (remove to-remove *team*)))))
 
 (defun team-selection-stage ()
+  (setf *team* (get-player-team))
+  (return-from team-selection-stage (get-player-team))
   (with-screen ()
     (display 'team-selection-container)
     (loop
@@ -74,7 +76,7 @@
           (#\Esc (return))
           (#\Newline (finish-input))
           (:key-left (team-selection-undo))
-          (:key-right (when (= (length *current-pick*) 5)
-                        (return-from team-selection-stage *current-pick*)))
+          (:key-right (when (= (length *team*) 5)
+                        (return-from team-selection-stage *team*)))
           (t (handle-key 'input key)))))))
 

@@ -100,3 +100,4 @@
          :value weight)))
   graph)
 
+(defparameter *MAP* (make-map-graph))

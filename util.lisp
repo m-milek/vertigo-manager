@@ -10,6 +10,13 @@
           text
           (format nil "~a[0m" #\esc))
   (terpri))
+
+(defun colored-text (text c)
+  (format nil "~a~a~a" 
+          (format nil "~a[3~a;1m" #\esc c)
+          text
+          (format nil "~a[0m" #\esc)))
+
 ;; (print-colored-text "This is red text!" 1)
 ;; (print-colored-text "This is green text!" 2)
 ;; (print-colored-text "This is blue text!" 4)
@@ -36,3 +43,9 @@
 
 (defun hash-table-keys (hash-table)
   (loop for key being the hash-keys of hash-table collect key))
+
+(defun centered-starting-col (str width)
+  (- (floor (/ width 2)) (floor (/ (length str) 2))))
+
+(defun make-keyword (str)
+  (intern str "KEYWORD"))

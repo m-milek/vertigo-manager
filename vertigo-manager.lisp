@@ -1,6 +1,8 @@
 (load "~/quicklisp/setup.lisp")
 (load "util.lisp")
 (with-silenced-output '(ql:quickload :cl-graph))
+(with-silenced-output '(ql:quickload :uiop))
+(with-silenced-output '(ql:quickload :alexandria))
 (load "display.lisp")
 (load "vertigo.lisp")
 (load "node-data.lisp")
@@ -10,6 +12,7 @@
 (load "round.lisp")
 (load "size.lisp")
 (load "team-selection.lisp")
+(load "match-info.lisp")
 (load "game-stage.lisp")
 
 (defun weight (edge) (cl-graph::value edge))
@@ -35,8 +38,8 @@
 
 (defun move-player (player-name dst-node)
   (let ((src-node (player-location player-name)))
-    (add-player player-name dst-node)
-    (remove-player player-name src-node)))
+    (remove-player player-name src-node)
+    (add-player player-name dst-node)))
 
 (defun remove-player (player-name node-name)
   (setf (players (gethash node-name *node-data-map*))
@@ -45,12 +48,13 @@
 
 (defun add-player (player-name node-name)
   (push player-name (players (gethash node-name *node-data-map*))))
-  
+
+
   ;; (let ((team (get-player-team))
   ;;       (enemy-team (get-enemy-team))
   ;;       (map (make-map-graph)))
-  ;;   (mapcar (lambda (player) (add-player player :T-Spawn)) team)
-  ;;   (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) enemy-team)
+;;   (mapcar (lambda (player) (add-player player :T-Spawn)) team)
+;;   (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) enemy-team)
   ;;   (print-player-infos)
   ;;   (print-map map)
   ;;   (print team)
@@ -89,18 +93,69 @@
   ;;           ;; (#\2 (display 'scene-2))
   ;;           ;; (#\3 (display 'scene-3))
   ;;           ;; (#\4 (display 'scene-4))
-  ;;           ))))
+;;           ))))
 
 
+;; (defpackage cl-tui.examples
+;;   (:use :cl :cl-tui))
+
+;; (in-package cl-tui.examples)
+
+;; ;; Colors can be initialized before init-screen
+;; ;; `color` creates a color object for later use.
+;; (defvar rainbow (list (color 900 500 00)
+;;                       (color 1000 1000 0)
+;;                       (color 0 1000 0)
+;;                       (color 0 1000 1000)
+;;                       (color 0 0 1000)
+;;                       (color 1000 0 1000)
+;;                       ))
+;; ;; `color-pair` creates a color pair (foreground-background)
+;; (defvar rainbow-pairs (loop :for i :below 6
+;;                          :collect (color-pair
+;;                                    (elt rainbow (mod i 6))
+;;                                    (elt rainbow (mod (1+ i) 6)))))
+
+;; (defparameter color-pairs
+;;   '(:red-green
+;;     (color-pair
+;;      (elt rainbow 1)
+;;      (elt rainbow 0))))
+
+;; (print (elt rainbow-pairs 0))
+;; (print (eval (getf color-pairs :red-green)))
+
+;; (defun main-render (&key)
+;;     ;; `with-attributes` modifies all calls putting characters or
+;;     ;; strings to apply the specified attributes
+;;     (with-attributes ((:color COLOR-PAIR)) 'callback
+;;       ;; This `put-char` call will have the color specified above
+;;       (put-char 'callback 1 1 #\X))
+;;   ;; (dotimes (i 20)
+;;   ;;   (let* ((intensity (* 50 i))
+;;   ;;          (fg (gray (+ 50 intensity)))
+;;   ;;          (bg (gray intensity)))
+;;   ;;     (with-attributes ((:color (color-pair fg bg))) 'callback
+;;   ;;       (dotimes (j 3)
+;;   ;;         (put-char 'callback (+ 2 j) (1+ i) #\X)))))
+;;   )
+
+;; (define-frame callback (simple-frame :render 'main-render) :on :root)
+
+;; (defun start ()
+;;   (with-screen (:colors)
+;;     (refresh)
+;;     (read-key)))
+
+;; (start)
 
 (defun main ()
-  (let ((team (team-selection-stage))
-        (enemy-team (get-enemy-team)))
-    (print team)
-    (print enemy-team)
+  (let* ((team (team-selection-stage))
+         (enemy-team (get-enemy-team)))
+    (mapcar (lambda (player) (add-player player :T-Spawn)) team)
+    (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) enemy-team)
     (gameplay-stage)
-    )
-  )
-
+    ))
+    
 
 (main)
