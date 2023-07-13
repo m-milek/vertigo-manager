@@ -31,10 +31,7 @@
          (data (get-node-data val)))
     (format nil "~A: ~A"
             (string val) ;; Name of the node
-            (players data)
-            )
-    )
-  )
+            (players data)))) ;; List of players
 
 (defun render-map-frame (&key frame)
   (draw-box frame)
@@ -45,12 +42,7 @@
      (lambda (vertex)
        (let ((about-node (node-debug-properties-str vertex)))
          (put-text frame line-num 1 about-node)
-         (incf line-num)
-         )
-       )
-     )
-    )
-  )
+         (incf line-num))))))
 
 (define-frame gameplay-container (container-frame :split-type :horizontal))
 
@@ -70,18 +62,45 @@
 (define-frame log (log-frame) :on map-container :h 5)
 (define-frame input (edit-frame :prompt "> ") :on map-container :h 1)
 
-(defun cmd/move (args)
-  (let ((who (make-keyword (string-upcase (first args))))
-        (where (make-keyword (string-upcase (second args)))))
-    (when (eq nil (contains (hash-table-keys *players*) who))
-      (append-line 'log (format nil "ERROR: Player ~A not found in your team." (string who)))
-      (return-from cmd/move nil))
-    (when (eq nil (contains vertigo-nodes where))
-      (append-line 'log (format nil "ERROR: Location ~A not found on Vertigo." (string where)))
-      (return-from cmd/move nil))
-    (append-line 'log (format nil "Moving ~A to ~A" (string who) (string where)))
-    (move-player who where)
-    ))
+(defun other-side (side)
+  (case side
+    (:CT :T)
+    (:T :CT)))
+
+(defparameter *current-side* :T)
+
+(defun switch-side ()
+  (setf *current-side* (other-side *current-side*)))
+
+(defun enemy-turn ()
+  (append-line 'log "ENEMY TURN" 1))
+
+(defclass game-round ()
+  ((turns-left :initform 20 :accessor turns-left)))
+
+(defparameter *current-game-round* (make-instance 'game-round))
+
+(defun reset-game-round ()
+  (setf *current-game-round* (make-instance 'game-round)))
+
+(defclass turn ()
+  ((used-players :initform nil :accessor used-players)))
+
+(defparameter *current-turn* (make-instance 'turn))
+
+(defun cmd/move (who where)
+  ;; Correct player name
+  
+  ;; Correct location name
+  
+  ;; Player can actually move to that location
+  (when (not (contains (neighbors-of (player-location who)) where))
+    (append-line 'log (format nil "ERROR: Player ~A is not in a location adjacent to ~A" (string who) (string where)))
+    (return-from cmd/move nil))
+  (append-line 'log (format nil "Moving ~A to ~A" (string who) (string where)))
+  (move-player who where)
+  t
+  )
 
 (defun cmd/attack (args)
   (format t "ATTACK")
@@ -107,41 +126,60 @@
   (format t "DEFEND")
   (print args))
 
-(defun cmd-is (desired acquired)
-  (string-equal desired acquired))
+(defun cmd/unknown (args)
+  (append-line 'log "Unknown command: ~A" (car args)))
+
+(defun mark-used (who)
+  ;; Mark that this player has used up their move in current turn
+  (push who (used-players *current-turn*)))
 
 (defun process-gameplay-cmd (cmd)
   (let* ((split-cmd (uiop:split-string cmd :separator " "))
-         (action (string-downcase (car split-cmd)))
-         (args (cdr split-cmd)))
-    (alexandria:switch (action :test #'equal)
-      ("move" (cmd/move args))
-      ("attack" (cmd/attack args))
-      ("defend" (cmd/defend args))
-      ("flash" (cmd/flash args))
-      ("smoke" (cmd/smoke args))
-      ("molly" (cmd/molly args))
-      ("nade" (cmd/nade args))
-      (t (cmd/unknown args))
+         (who (make-keyword (string-upcase (first split-cmd))))
+         (action (string-downcase (second split-cmd)))
+         (where (make-keyword (string-upcase (third split-cmd)))))
+    ;; all variables defined
+
+    ;; check if that player exists
+    (when (not (contains (hash-table-keys *players*) who))
+      (append-line 'log (format nil "ERROR: Player ~A is not in your team." (string who)))
+      (return-from process-gameplay-cmd nil))
+
+    ;; Check if that player can be moved
+    (when (contains (used-players *current-turn*) who)
+      (append-line 'log (format nil "ERROR: Player ~A has already used up their move in this turn." who))
+      (return-from process-gameplay-cmd nil))
+
+    ;; Check if that location exists
+    (when (not (contains vertigo-nodes where))
+      (append-line 'log (format nil "ERROR: Location ~A not found on Vertigo." (string where)))
+      (return-from cmd/move nil))
+
+    ;; Everything went well, action can be performed
+    ;; mark the player as used this turn
+    (append-line 'log "Player ~A marked as used" who)
+    
+    (let ((cmd-result (alexandria:switch (action :test #'equal)
+                   ("move" (cmd/move who where))
+                   ;; ("attack" 'cmd/attack)
+                   ;; ("defend" 'cmd/defend)
+                   ;; ("flash" 'cmd/flash)
+                   ;; ("smoke" 'cmd/smoke)
+                   ;; ("molly" 'cmd/molly)
+                       ;; ("nade" 'cmd/nade)))
+                       )))
+      (unless (eq nil cmd-result)
+        (mark-used who))
       )
     )
   )
 
 (defun finish-gameplay-input ()
   (let ((text (get-text 'input)))
-    ;;(append-line 'log text)
     (clear-text 'input)
-    (process-gameplay-cmd text)
-    )
-  )
+    (process-gameplay-cmd text)))
 
-(defun other-tag (tag)
-  (case tag
-    (:CT :T)
-    (:T :CT)))
 
-(defun enemy-turn ()
-  (append-line 'log "ENEMY TURN" 1))
 
 (defun gameplay-stage ()
   (with-screen ()
@@ -149,13 +187,14 @@
     (append-line 'log "This is the game log.")
     (loop
       (refresh)
-      (case (whose-turn)
-        (:CT (progn
-               (sleep 1)
-               (enemy-turn)
-               (toggle-turn)))
-        (:T (let ((key (read-key)))
-              (case key
-                (#\Esc (return))
-                (#\Newline (finish-gameplay-input))
-                (t (handle-key 'input key)))))))))
+      (if (eq (whose-turn) *current-side*)
+          (let ((key (read-key)))
+            (case key
+              (#\Esc (return))
+              (#\Newline (finish-gameplay-input))
+              (t (handle-key 'input key))))
+          (progn
+            (sleep 1)
+            (enemy-turn)
+            (toggle-turn))
+          ))))

@@ -149,6 +149,12 @@
 
 ;; (start)
 
+(defun neighbors-of (vertex-val)
+  (let ((neighbors nil)
+        (vertex (cl-graph:find-vertex *MAP* vertex-val)))
+    (cl-graph:iterate-neighbors vertex (lambda (v) (push (cl-graph::value v) neighbors)))
+    neighbors))
+
 (defun main ()
   (let* ((team (team-selection-stage))
          (enemy-team (get-enemy-team)))
@@ -156,6 +162,5 @@
     (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) enemy-team)
     (gameplay-stage)
     ))
-    
 
 (main)
