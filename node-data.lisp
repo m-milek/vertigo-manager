@@ -38,3 +38,5 @@
 (defun get-node-data (key)
   (gethash key *node-data-map*))
 
+(defun clear-flashes ()
+  (maphash (lambda (where data) (setf (flashed? data) nil)) *node-data-map*))

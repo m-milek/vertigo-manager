@@ -39,7 +39,8 @@
 (defun toggle-turn ()
   (setf (turn *match-info*)
         (other-side (turn *match-info*)))
-  (setf (turns-left *current-game-round*) (- (turns-left *current-game-round*) 0.5)))
+  (setf (turns-left *current-game-round*) (- (turns-left *current-game-round*) 0.5))
+  (clear-flashes))
 
 (defun whose-turn ()
   (turn *match-info*))

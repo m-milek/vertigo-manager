@@ -28,15 +28,15 @@
     (put-text frame 5 (centered-starting-col turn-title width) turn-title)
     (put-text frame 6 (centered-starting-col turn-str width) turn-str)
     (put-text frame 8 (centered-starting-col turns-left-title width) turns-left-title)
-    (put-text frame 9 (centered-starting-col turns-left width) turns-left)
-    ))
+    (put-text frame 9 (centered-starting-col turns-left width) turns-left)))
 
 (defun node-debug-properties-str (vertex)
   (let* ((val (cl-graph::value vertex))
          (data (get-node-data val)))
-    (format nil "~A: ~A"
+    (format nil "~A: ~A, F?: ~A"
             (string val) ;; Name of the node
-            (players data)))) ;; List of players
+            (players data)
+            (flashed? data)))) ;; List of players
 
 (defun render-map-frame (&key frame)
   (draw-box frame)
@@ -97,9 +97,10 @@
   
   )
 
-(defun cmd/flash (args)
-  (format t "FLASH")
-  (print args))
+(defun cmd/flash (who where)
+  ;; Roll to see if the flash works
+  (append-line 'log "Player ~A flashed ~A" who where)
+  (setf (flashed? (get-node-data where)) t))
 
 (defun cmd/smoke (args)
   (format t "SMOKE")
@@ -166,8 +167,8 @@
             (alexandria:switch (action :test #'equal)
               ("move" (cmd/move who where))
               ("attack" (cmd/attack who where))
+              ("flash" (cmd/flash who where))
               ;; ("defend" 'cmd/defend)
-              ;; ("flash" 'cmd/flash)
               ;; ("smoke" 'cmd/smoke)
               ;; ("molly" 'cmd/molly)
               ;; ("nade" 'cmd/nade)))
