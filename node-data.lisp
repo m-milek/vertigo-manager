@@ -37,3 +37,4 @@
 
 (defun get-node-data (key)
   (gethash key *node-data-map*))
+

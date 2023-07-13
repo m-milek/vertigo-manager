@@ -1,3 +1,16 @@
+(defclass game-round ()
+  ((turns-left :initform 20 :accessor turns-left)))
+
+(defparameter *current-game-round* (make-instance 'game-round))
+
+(defun reset-game-round ()
+  (setf *current-game-round* (make-instance 'game-round)))
+
+(defclass turn ()
+  ((used-players :initform nil :accessor used-players)))
+
+(defparameter *current-turn* (make-instance 'turn))
+
 (defclass match-info ()
   ((scores :initform '(:T 0 :CT 0) :accessor scores)
    (turn :initform ':T :accessor turn)))
@@ -25,8 +38,8 @@
 
 (defun toggle-turn ()
   (setf (turn *match-info*)
-        (other-side (turn *match-info*))))
+        (other-side (turn *match-info*)))
+  (setf (turns-left *current-game-round*) (- (turns-left *current-game-round*) 0.5)))
 
 (defun whose-turn ()
   (turn *match-info*))
-

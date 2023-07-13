@@ -20,11 +20,16 @@
          (counter-begin-col (centered-starting-col counter width))
          (turn-str (string (whose-turn)))
          (score-title "SCORE")
-         (turn-title "TURN"))
+         (turn-title "TURN")
+         (turns-left-title "TURNS LEFT IN ROUND")
+         (turns-left (write-to-string (ceiling (turns-left *current-game-round*)))))
     (put-text frame 2 (centered-starting-col score-title width) score-title)
     (put-text frame 3 counter-begin-col counter)
     (put-text frame 5 (centered-starting-col turn-title width) turn-title)
-    (put-text frame 6 (centered-starting-col turn-str width) turn-str)))
+    (put-text frame 6 (centered-starting-col turn-str width) turn-str)
+    (put-text frame 8 (centered-starting-col turns-left-title width) turns-left-title)
+    (put-text frame 9 (centered-starting-col turns-left width) turns-left)
+    ))
 
 (defun node-debug-properties-str (vertex)
   (let* ((val (cl-graph::value vertex))
@@ -75,36 +80,22 @@
 (defun enemy-turn ()
   (append-line 'log "ENEMY TURN" 1))
 
-(defclass game-round ()
-  ((turns-left :initform 20 :accessor turns-left)))
-
-(defparameter *current-game-round* (make-instance 'game-round))
-
-(defun reset-game-round ()
-  (setf *current-game-round* (make-instance 'game-round)))
-
-(defclass turn ()
-  ((used-players :initform nil :accessor used-players)))
-
-(defparameter *current-turn* (make-instance 'turn))
-
 (defun cmd/move (who where)
-  ;; Correct player name
-  
-  ;; Correct location name
-  
-  ;; Player can actually move to that location
-  (when (not (contains (neighbors-of (player-location who)) where))
-    (append-line 'log (format nil "ERROR: Player ~A is not in a location adjacent to ~A" (string who) (string where)))
-    (return-from cmd/move nil))
+  ;; Check if there is an enemy on that location. if there is, cancel.
+  (when (enemy-present-on where)
+    (append-line 'log (format nil "There is one or more enemies present at ~A. Peek them first!" where))
+    (return-from cmd/move))
   (append-line 'log (format nil "Moving ~A to ~A" (string who) (string where)))
   (move-player who where)
-  t
-  )
+  t)
 
-(defun cmd/attack (args)
-  (format t "ATTACK")
-  (print args))
+(defun cmd/attack (who where)
+  (when (not (enemy-present-on where))
+    (append-line 'log (format nil "There is no enemy to attack on ~A. Just push!" where))
+    (return-from cmd/attack))
+  (append-line 'log "Player ~A is attacking ~A" who where)
+  
+  )
 
 (defun cmd/flash (args)
   (format t "FLASH")
@@ -133,6 +124,16 @@
   ;; Mark that this player has used up their move in current turn
   (push who (used-players *current-turn*)))
 
+(defun clear-used ()
+  (setf (used-players *current-turn*) nil))
+
+(defun enemy-present-on (location)
+  (some
+   (lambda (enemy)
+     (contains (players (get-node-data location))
+               enemy))
+   *enemy-team*))
+
 (defun process-gameplay-cmd (cmd)
   (let* ((split-cmd (uiop:split-string cmd :separator " "))
          (who (make-keyword (string-upcase (first split-cmd))))
@@ -143,43 +144,47 @@
     ;; check if that player exists
     (when (not (contains (hash-table-keys *players*) who))
       (append-line 'log (format nil "ERROR: Player ~A is not in your team." (string who)))
-      (return-from process-gameplay-cmd nil))
+      (return-from process-gameplay-cmd))
 
     ;; Check if that player can be moved
     (when (contains (used-players *current-turn*) who)
       (append-line 'log (format nil "ERROR: Player ~A has already used up their move in this turn." who))
-      (return-from process-gameplay-cmd nil))
+      (return-from process-gameplay-cmd))
 
     ;; Check if that location exists
     (when (not (contains vertigo-nodes where))
       (append-line 'log (format nil "ERROR: Location ~A not found on Vertigo." (string where)))
-      (return-from cmd/move nil))
+      (return-from process-gameplay-cmd))
 
-    ;; Everything went well, action can be performed
-    ;; mark the player as used this turn
-    (append-line 'log "Player ~A marked as used" who)
-    
-    (let ((cmd-result (alexandria:switch (action :test #'equal)
-                   ("move" (cmd/move who where))
-                   ;; ("attack" 'cmd/attack)
-                   ;; ("defend" 'cmd/defend)
-                   ;; ("flash" 'cmd/flash)
-                   ;; ("smoke" 'cmd/smoke)
-                   ;; ("molly" 'cmd/molly)
-                       ;; ("nade" 'cmd/nade)))
-                       )))
+    ;; Location is valid (adjacent to (player-location who))
+    (when (not (contains (neighbors-of (player-location who)) where))
+      (append-line 'log (format nil "ERROR: Player ~A is not in a location adjacent to ~A" (string who) (string where)))
+      (return-from process-gameplay-cmd))
+
+    ;; Action can be performed
+    (let ((cmd-result
+            (alexandria:switch (action :test #'equal)
+              ("move" (cmd/move who where))
+              ("attack" (cmd/attack who where))
+              ;; ("defend" 'cmd/defend)
+              ;; ("flash" 'cmd/flash)
+              ;; ("smoke" 'cmd/smoke)
+              ;; ("molly" 'cmd/molly)
+              ;; ("nade" 'cmd/nade)))
+              )))
       (unless (eq nil cmd-result)
-        (mark-used who))
-      )
-    )
-  )
+        ;; mark the player as used this turn
+        (mark-used who)))))
 
 (defun finish-gameplay-input ()
   (let ((text (get-text 'input)))
     (clear-text 'input)
-    (process-gameplay-cmd text)))
-
-
+    (process-gameplay-cmd text))
+  ;; All players have been used
+  (when (eq 5 (length (used-players *current-turn*)))
+    (append-line 'log "All players have been used. Ending turn...")
+    (clear-used)
+    (toggle-turn)))
 
 (defun gameplay-stage ()
   (with-screen ()

@@ -156,11 +156,11 @@
     neighbors))
 
 (defun main ()
-  (let* ((team (team-selection-stage))
-         (enemy-team (get-enemy-team)))
-    (mapcar (lambda (player) (add-player player :T-Spawn)) team)
-    (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) enemy-team)
-    (gameplay-stage)
-    ))
+  (defparameter *team* (team-selection-stage))
+  (defparameter *enemy-team* (get-enemy-team))
+  (mapcar (lambda (player) (add-player player :T-Spawn)) *team*)
+  (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) *enemy-team*)
+  (move-player :MONESY :TUNNELS)
+  (gameplay-stage))
 
 (main)
