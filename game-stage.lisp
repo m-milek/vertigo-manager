@@ -64,7 +64,7 @@
 ;; right panel
 (define-frame map-container (container-frame :split-type :vertical) :on right-panel-container)
 (define-frame map-frame (simple-frame :render #'render-map-frame) :on map-container)
-(define-frame log (log-frame) :on map-container :h 5)
+(define-frame log (log-frame) :on map-container :h 20)
 (define-frame input (edit-frame :prompt "> ") :on map-container :h 1)
 
 (defun other-side (side)
@@ -93,8 +93,13 @@
   (when (not (enemy-present-on where))
     (append-line 'log (format nil "There is no enemy to attack on ~A. Just push!" where))
     (return-from cmd/attack))
-  (append-line 'log "Player ~A is attacking ~A" who where)
-  
+  ;; Pick an enemy to attack on that location
+  (let* ((node-data (get-node-data where))
+         (enemies (players node-data))
+         (defender (nth (random (length enemies)) enemies)))
+    (append-line 'log (format nil "~A is attacking ~A" who defender))
+    (attack who defender (get-node-data where))
+    )
   )
 
 (defun cmd/flash (who where)
@@ -131,8 +136,8 @@
 (defun enemy-present-on (location)
   (some
    (lambda (enemy)
-     (contains (players (get-node-data location))
-               enemy))
+     (and (player-alive? enemy)
+          (contains (players (get-node-data location)) enemy)))
    *enemy-team*))
 
 (defun process-gameplay-cmd (cmd)
@@ -141,10 +146,15 @@
          (action (string-downcase (second split-cmd)))
          (where (make-keyword (string-upcase (third split-cmd)))))
     ;; all variables defined
-
-    ;; check if that player exists
+    
+    ;; Check if that player exists
     (when (not (contains (hash-table-keys *players*) who))
       (append-line 'log (format nil "ERROR: Player ~A is not in your team." (string who)))
+      (return-from process-gameplay-cmd))
+
+    ;; Check if the player is alive
+    (when (< (hp (get-round-status who)) 0)
+      (append-line 'log (format nil "ERROR: Player ~A is dead." (string who)))
       (return-from process-gameplay-cmd))
 
     ;; Check if that player can be moved
@@ -182,15 +192,26 @@
     (clear-text 'input)
     (process-gameplay-cmd text))
   ;; All players have been used
-  (when (eq 5 (length (used-players *current-turn*)))
+  (when (eq (length *team*) (length (used-players *current-turn*)))
     (append-line 'log "All players have been used. Ending turn...")
     (clear-used)
     (toggle-turn)))
+
+(defun make-buy-decisions ()
+  ;; Check funds and buy guns
+  ;; for now, give everyone an AK
+  (mapcar (lambda (name)
+            (setf (gun (round-status (get-player-info name))) :AK-47))
+          *team*)
+  (mapcar (lambda (name)
+            (setf (gun (round-status (get-player-info name))) :AK-47))
+          *enemy-team*))
 
 (defun gameplay-stage ()
   (with-screen ()
     (display 'gameplay-container)
     (append-line 'log "This is the game log.")
+    (init-new-round)
     (loop
       (refresh)
       (if (eq (whose-turn) *current-side*)
@@ -203,4 +224,7 @@
             (sleep 1)
             (enemy-turn)
             (toggle-turn))
-          ))))
+          )
+      (when (zerop (turns-left *current-game-round*))
+        (init-new-round))
+      )))

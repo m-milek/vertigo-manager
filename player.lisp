@@ -1,21 +1,13 @@
-(defclass player ()
-    ((name
-      :initarg :name
-      :accessor name)
-     (hp
+(defclass player-round-status ()
+    ((hp
       :initform 100
       :accessor hp)
      (gun
-      :initarg :gun
+      :initform nil
       :accessor gun)
      (utility
-      :initarg :utility
+      :initform nil
       :accessor utility)))
-
-(defmethod print-player ((player player))
-  (format t "My name is ~A and my HP is ~A. I have ~A and ~A"
-          (name player) (hp player) (gun player) (utility player))
-  (terpri))
 
 (defun key-val-pairs (hash-table)
   (let (result)

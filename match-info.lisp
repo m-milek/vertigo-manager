@@ -1,10 +1,14 @@
 (defclass game-round ()
-  ((turns-left :initform 20 :accessor turns-left)))
+  ((turns-left :initform 1 :accessor turns-left)))
 
 (defparameter *current-game-round* (make-instance 'game-round))
 
 (defun reset-game-round ()
   (setf *current-game-round* (make-instance 'game-round)))
+
+(defun init-new-round ()
+  (reset-game-round)
+  (make-buy-decisions))
 
 (defclass turn ()
   ((used-players :initform nil :accessor used-players)))

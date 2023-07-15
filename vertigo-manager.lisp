@@ -13,6 +13,7 @@
 (load "size.lisp")
 (load "team-selection.lisp")
 (load "match-info.lisp")
+(load "combat.lisp")
 (load "game-stage.lisp")
 
 (defun weight (edge) (cl-graph::value edge))
@@ -156,11 +157,12 @@
     neighbors))
 
 (defun main ()
+  (setf *random-state* (make-random-state t))
   (defparameter *team* (team-selection-stage))
   (defparameter *enemy-team* (get-enemy-team))
+  (init-enemy-info)
   (mapcar (lambda (player) (add-player player :T-Spawn)) *team*)
-  (mapcar (lambda (enemy) (add-player enemy :CT-Spawn)) *enemy-team*)
-  (move-player :MONESY :TUNNELS)
+  (mapcar (lambda (enemy) (add-player enemy :Tunnels)) *enemy-team*)
   (gameplay-stage))
 
 (main)

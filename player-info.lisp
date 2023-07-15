@@ -6,7 +6,8 @@
           (getf (full-buy info) :T) (getf (full-buy info) :CT)))
 
 (defclass player-info ()
-  ((accuracy :initarg :accuracy :accessor accuracy)
+  ((round-status :initform (make-instance 'player-round-status) :accessor round-status)
+   (accuracy :initarg :accuracy :accessor accuracy)
    (eco-buy :initarg :eco-buy :accessor eco-buy)
    (half-buy :initarg :half-buy :accessor half-buy)
    (full-buy :initarg :full-buy :accessor full-buy)))
@@ -63,6 +64,40 @@
       (setf (gethash key table) (eval value)))
     table))
 
+
+(defparameter awper-info
+  (make-instance
+   'player-info
+   :accuracy 0.5
+   :eco-buy '(:T :Desert-Eagle :CT :Desert-Eagle)
+   :half-buy '(:T :SSG-08 :CT :SSG-08)
+   :full-buy '(:T :AWP :CT :AWP)))
+
+(defparameter rifler-info
+  (make-instance
+   'player-info
+   :accuracy 0.6
+   :eco-buy '(:T :Glock-18 :CT :USP-S)
+   :half-buy '(:T :Galil-AR :CT :FAMAS)
+   :full-buy '(:T :AK-47 :CT :M4A1-S)))
+
+(defparameter troll-info
+  (make-instance
+   'player-info
+   :accuracy 0.3
+   :eco-buy '(:T :Glock-18 :CT :USP-S)
+   :half-buy '(:T :Nova :CT :Mag-7)
+   :full-buy '(:T :Nova :CT :MP5-SD)))
+
+(defun init-enemy-info ()
+  (defparameter *enemies*
+  ;; Hashtable containing enemy names and information about them
+  (let ((table (make-hash-table))
+        (infos (list awper-info rifler-info troll-info)))
+    (loop for name in *enemy-team* do
+          (setf (gethash name table) (nth (random (length infos)) infos)))
+    table)))
+
 (defun print-player-infos ()
   (maphash (lambda (name info)
              (progn
@@ -70,4 +105,16 @@
                ))
            *players*))
 
-(defun get-player-info (symbol) (getf *players* symbol))
+(defun get-player-info (name)
+  (if (contains *team* name)
+      (gethash name *players*)
+      (gethash name *enemies*)))
+
+(defun get-round-status (name)
+  (if (contains *team* name)
+      (round-status (gethash name *players*))
+      (round-status (gethash name *enemies*))))
+
+(defun player-alive? (name)
+  (> (hp (get-round-status name)) 0))
+
