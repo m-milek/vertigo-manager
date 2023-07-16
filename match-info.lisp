@@ -1,5 +1,5 @@
 (defclass game-round ()
-  ((turns-left :initform 1 :accessor turns-left)))
+  ((turns-left :initform 3 :accessor turns-left)))
 
 (defparameter *current-game-round* (make-instance 'game-round))
 
@@ -8,6 +8,7 @@
 
 (defun init-new-round ()
   (reset-game-round)
+  (ai/seed-round-logic)
   (make-buy-decisions))
 
 (defclass turn ()

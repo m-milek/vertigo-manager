@@ -49,3 +49,6 @@
 
 (defun make-keyword (str)
   (intern str "KEYWORD"))
+
+(defun delete-elem (list val)
+  (setf list (remove val list)))

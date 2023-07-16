@@ -77,9 +77,6 @@
 (defun switch-side ()
   (setf *current-side* (other-side *current-side*)))
 
-(defun enemy-turn ()
-  (append-line 'log "ENEMY TURN" 1))
-
 (defun cmd/move (who where)
   ;; Check if there is an enemy on that location. if there is, cancel.
   (when (enemy-present-on where)
