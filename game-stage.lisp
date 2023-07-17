@@ -1,15 +1,21 @@
-;; Define the UI for a normal round
-
 (defun get-score-counter ()
   ;; Place the player's team score on the left, enemy score on the right
   (format nil "~A : ~A" (ct-score) (t-score)))
+
+(defun player-status-str (name)
+  (format nil "~A ~A ~A" (let* ((str (write-to-string (hp (get-round-status name))))
+                                (diff (- 3 (length str))))
+                           (concatenate 'string str (make-string diff :initial-element #\Space))
+                           )
+          (if (contains (used-players *current-turn*) name) "X" " ")
+          (string name)))
 
 (defun render-player-list (&key frame)
   (draw-box frame)
   (put-text frame 0 3 "PLAYERS")
   (let ((line-num 1))
     (loop for name in *team* do
-      (put-text frame line-num 1 (string name))
+      (put-text frame line-num 1 (player-status-str name))
       (incf line-num))))
 
 (defun render-match-info (&key frame)
@@ -34,20 +40,25 @@
   (let* ((val (cl-graph::value vertex))
          (data (get-node-data val)))
     (format nil "~A: ~A, F?: ~A"
-            (string val) ;; Name of the node
+            (string val)
             (players data)
-            (flashed? data)))) ;; List of players
+            (flashed? data))))
 
 (defun render-map-frame (&key frame)
   (draw-box frame)
   (put-text frame 0 3 "MAP")
-  (let ((line-num 1))
-    (cl-graph:iterate-vertexes
-     *MAP*
-     (lambda (vertex)
-       (let ((about-node (node-debug-properties-str vertex)))
-         (put-text frame line-num 1 about-node)
-         (incf line-num))))))
+  (let ((map-list (get-map-string))
+        (node-num 0))
+    (dotimes (line-num (length map-list))
+      (let* ((map-line (nth line-num map-list))
+             (slot-pos (search "XXX" map-line)))
+        (if slot-pos
+            (progn
+              (put-text frame (+ 1 line-num) 1
+                        (cl-ppcre:regex-replace-all
+                         "XXX" map-line (node-to-3-chars (nth node-num *map-node-order*))))
+              (incf node-num))
+            (put-text frame (+ 1 line-num) 1 map-line))))))
 
 (define-frame gameplay-container (container-frame :split-type :horizontal))
 
@@ -64,7 +75,7 @@
 ;; right panel
 (define-frame map-container (container-frame :split-type :vertical) :on right-panel-container)
 (define-frame map-frame (simple-frame :render #'render-map-frame) :on map-container)
-(define-frame log (log-frame) :on map-container :h 20)
+(define-frame log (log-frame) :on map-container :h 6)
 (define-frame input (edit-frame :prompt "> ") :on map-container :h 1)
 
 (defun other-side (side)
@@ -95,9 +106,8 @@
          (enemies (players node-data))
          (defender (nth (random (length enemies)) enemies)))
     (append-line 'log (format nil "~A is attacking ~A" who defender))
-    (attack who defender (get-node-data where))
-    )
-  )
+    (attack who defender (get-node-data where)))
+  t)
 
 (defun cmd/flash (who where)
   ;; Roll to see if the flash works
@@ -105,23 +115,20 @@
   (setf (flashed? (get-node-data where)) t))
 
 (defun cmd/smoke (args)
-  (format t "SMOKE")
-  (print args))
-
-(defun cmd/molly (args)
-  (format t "MOLLY")
-  (print args))
-
-(defun cmd/nade (args)
-  (format t "NADE")
-  (print args))
-
-(defun cmd/defend (args)
-  (format t "DEFEND")
-  (print args))
+(append-line 'log "Player ~A smoked ~A" who where)
+  (setf (smoked? (get-node-data where)) t))
 
 (defun cmd/unknown (args)
   (append-line 'log "Unknown command: ~A" (car args)))
+
+(defun fib (n)
+  (case n
+    (0 1)
+    (1 1)
+    (t (+ (fib (- n 1)) (fib (- n 2))))))
+
+(defun cmd/pass (who)
+  (fib 33))
 
 (defun mark-used (who)
   ;; Mark that this player has used up their move in current turn
@@ -160,14 +167,15 @@
       (return-from process-gameplay-cmd))
 
     ;; Check if that location exists
-    (when (not (contains vertigo-nodes where))
-      (append-line 'log (format nil "ERROR: Location ~A not found on Vertigo." (string where)))
-      (return-from process-gameplay-cmd))
+    (unless (string-equal action "pass")
+      (when (not (contains vertigo-nodes where))
+        (append-line 'log (format nil "ERROR: Location ~A not found on Vertigo." (string where)))
+        (return-from process-gameplay-cmd))
 
-    ;; Location is valid (adjacent to (player-location who))
-    (when (not (contains (neighbors-of (player-location who)) where))
-      (append-line 'log (format nil "ERROR: Player ~A is not in a location adjacent to ~A" (string who) (string where)))
-      (return-from process-gameplay-cmd))
+      ;; Location is valid (adjacent to (player-location who))
+      (when (not (contains (neighbors-of (player-location who)) where))
+        (append-line 'log (format nil "ERROR: Player ~A is not in a location adjacent to ~A" (string who) (string where)))
+        (return-from process-gameplay-cmd)))
 
     ;; Action can be performed
     (let ((cmd-result
@@ -175,14 +183,19 @@
               ("move" (cmd/move who where))
               ("attack" (cmd/attack who where))
               ("flash" (cmd/flash who where))
-              ;; ("defend" 'cmd/defend)
-              ;; ("smoke" 'cmd/smoke)
-              ;; ("molly" 'cmd/molly)
-              ;; ("nade" 'cmd/nade)))
-              )))
+              ("pass" (cmd/pass who)))))
       (unless (eq nil cmd-result)
         ;; mark the player as used this turn
         (mark-used who)))))
+
+(defun add-player-score ()
+  (case *current-side*
+    (:T (add-t-score))
+    (:CT (add-ct-score))))
+(defun add-player-score ()
+  (case (other-side *current-side*)
+    (:T (add-t-score))
+    (:CT (add-ct-score))))
 
 (defun finish-gameplay-input ()
   (let ((text (get-text 'input)))
@@ -192,7 +205,16 @@
   (when (eq (length *team*) (length (used-players *current-turn*)))
     (append-line 'log "All players have been used. Ending turn...")
     (clear-used)
-    (toggle-turn)))
+    (toggle-turn))
+  (when (every (lambda (p) (not (player-alive? p))) *enemy-team*)
+    (add-player-score)
+    (reset-game-round)
+    (init-new-round))
+  (when (every (lambda (p) (not (player-alive? p))) *team*)
+    (add-enemy-score)
+    (reset-game-round)
+    (init-new-round))
+  )
 
 (defun make-buy-decisions ()
   ;; Check funds and buy guns
@@ -220,8 +242,6 @@
           (progn
             (sleep 1)
             (enemy-turn)
-            (toggle-turn))
-          )
+            (toggle-turn)))
       (when (zerop (turns-left *current-game-round*))
-        (init-new-round))
-      )))
+        (init-new-round)))))

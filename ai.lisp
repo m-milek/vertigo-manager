@@ -15,8 +15,7 @@
   (ai/reset-round-logic)
   (if (eq (other-side *current-side*) :CT)
       (ai/seed-ct-round-logic)
-      (ai/seed-t-round-logic))
-  (append-line 'log "SEEDED ROUND LOGIC ~A" (strat *ai-round-logic*)))
+      (ai/seed-t-round-logic)))
 
 (defun ai/seed-ct-round-logic ()
   ;; Pick a strat and set it
@@ -35,7 +34,6 @@
     (setf (strat *ai-round-logic*) picked-strat)))
 
 (defun enemy-turn ()
-  (append-line 'log "Funcalling strat")
   (funcall (strat *ai-round-logic*)))
 
 (defun path-between (a b)

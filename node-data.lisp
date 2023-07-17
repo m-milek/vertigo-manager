@@ -40,3 +40,15 @@
 
 (defun clear-flashes ()
   (maphash (lambda (where data) (setf (flashed? data) nil)) *node-data-map*))
+
+(defun node-to-3-chars (name)
+  ;;(write-line (format nil "~A ~A" name (get-node-data name)) *error-output*)
+  (let ((players (players (get-node-data name))))
+    (if players
+        (let* ((num (write-to-string (length (remove-if-not
+                                              (lambda (p) (player-alive? p))
+                                              players)))))
+          (if (every (lambda (p) (is-enemy? p)) players)
+              (concatenate 'string num " E")
+              (concatenate 'string num " F")))
+        "NIL")))

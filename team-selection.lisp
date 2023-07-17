@@ -65,8 +65,6 @@
             (remove to-remove *team*)))))
 
 (defun team-selection-stage ()
-  (setf *team* (get-player-team))
-  (return-from team-selection-stage (get-player-team))
   (with-screen ()
     (display 'team-selection-container)
     (loop

@@ -1,5 +1,5 @@
 (defclass game-round ()
-  ((turns-left :initform 3 :accessor turns-left)))
+  ((turns-left :initform 15 :accessor turns-left)))
 
 (defparameter *current-game-round* (make-instance 'game-round))
 

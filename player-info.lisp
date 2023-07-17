@@ -118,3 +118,5 @@
 (defun player-alive? (name)
   (> (hp (get-round-status name)) 0))
 
+(defun is-enemy? (name)
+  (contains *enemy-team* name))
